@@ -115,3 +115,21 @@ button:disabled {
 .status.err {
   color: #b42318;
 }
+
+.linkish {
+  margin-top: 2px;
+  padding: 0.2rem 0;
+  border: none;
+  background: transparent;
+  color: var(--accent-deep);
+  font: inherit;
+  font-size: 0.84rem;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.linkish:hover {
+  color: var(--accent);
+}

@@ -63,4 +63,8 @@ openBtn.addEventListener("click", () => {
   chrome.tabs.create({ url: "chrome://newtab" });
 });
 
+document.getElementById("open-options").addEventListener("click", () => {
+  chrome.runtime.openOptionsPage();
+});
+
 loadCurrentTab();

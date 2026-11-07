@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>武哥新标签页 · 设置</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header>
+        <h1>武哥新标签页</h1>
+        <p class="lead">导入 / 导出卡片，方便在其他电脑迁移</p>
+      </header>
+
+      <section class="panel">
+        <h2>当前卡片</h2>
+        <p class="meta">共 <strong id="count">0</strong> 张</p>
+        <ul class="preview" id="preview"></ul>
+      </section>
+
+      <section class="panel">
+        <h2>导出</h2>
+        <p class="desc">下载 JSON 文件，拷到另一台电脑后导入即可。</p>
+        <button type="button" class="primary" id="export-btn">导出卡片</button>
+      </section>
+
+      <section class="panel">
+        <h2>导入</h2>
+        <p class="desc">选择之前导出的 JSON 文件。</p>
+        <div class="import-modes">
+          <label class="radio">
+            <input type="radio" name="mode" value="merge" checked />
+            合并（保留现有，跳过重复网址）
+          </label>
+          <label class="radio">
+            <input type="radio" name="mode" value="replace" />
+            替换（清空现有，以文件为准）
+          </label>
+        </div>
+        <div class="row">
+          <input type="file" id="import-file" accept="application/json,.json" hidden />
+          <button type="button" class="primary" id="import-btn">选择文件并导入</button>
+        </div>
+      </section>
+
+      <p class="status" id="status" hidden></p>
+    </main>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>
