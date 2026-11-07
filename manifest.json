@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "武哥新标签页",
+  "description": "长期固定网页卡片：一键添加当前页面，支持编辑与拖拽排序。",
+  "version": "1.1.0",
+  "permissions": ["storage", "tabs", "favicon", "bookmarks"],
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  },
+  "action": {
+    "default_title": "添加当前页面到新标签页",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

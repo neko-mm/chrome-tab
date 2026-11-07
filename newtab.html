@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>新标签页</title>
+    <link rel="stylesheet" href="newtab.css" />
+  </head>
+  <body>
+    <div class="atmosphere" aria-hidden="true"></div>
+
+    <nav class="bookmarks" id="bookmarks" aria-label="书签栏"></nav>
+
+    <main class="shell">
+      <header class="hero">
+        <h1 class="clock" id="clock">--:--</h1>
+        <form class="search" id="search-form" role="search" action="https://www.google.com/search" method="get">
+          <input
+            type="search"
+            id="search-input"
+            name="q"
+            placeholder="问问 Google"
+            autocomplete="off"
+            enterkeyhint="search"
+            aria-label="搜索"
+          />
+        </form>
+      </header>
+
+      <section class="board" aria-label="卡片">
+        <ul class="grid" id="card-grid"></ul>
+
+        <p class="hint" id="empty-hint" hidden>
+          还没有卡片。打开任意网页后，点击工具栏扩展图标即可一键添加；也可点「+」手动添加。
+        </p>
+      </section>
+
+      <footer class="credit" id="credit">武哥出品</footer>
+    </main>
+
+    <dialog class="modal" id="edit-dialog">
+      <form method="dialog" id="edit-form">
+        <h3 id="dialog-title">添加卡片</h3>
+        <label>
+          名称
+          <input type="text" id="field-title" name="title" maxlength="80" required />
+        </label>
+        <label>
+          网址
+          <input type="url" id="field-url" name="url" placeholder="https://" required />
+        </label>
+        <p class="form-error" id="form-error" hidden></p>
+        <div class="dialog-actions">
+          <button type="button" class="text-danger" id="dialog-delete" hidden>删除</button>
+          <div class="dialog-actions-right">
+            <button type="button" class="ghost-btn" id="dialog-cancel">取消</button>
+            <button type="submit" class="primary-btn" id="dialog-save">保存</button>
+          </div>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="newtab.js"></script>
+  </body>
+</html>

@@ -1,0 +1,117 @@
+:root {
+  --ink: #16343a;
+  --muted: #4d6b70;
+  --accent: #1f7a6c;
+  --accent-deep: #14574d;
+  --line: rgba(22, 52, 58, 0.14);
+  --bg: #f4f8f6;
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-body: "Avenir Next", Avenir, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  width: 320px;
+  color: var(--ink);
+  font-family: var(--font-body);
+  background:
+    radial-gradient(circle at 0% 0%, rgba(95, 186, 168, 0.28), transparent 45%),
+    radial-gradient(circle at 100% 0%, rgba(236, 196, 120, 0.22), transparent 40%),
+    var(--bg);
+}
+
+main {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.lead {
+  margin: -4px 0 4px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+label {
+  display: grid;
+  gap: 5px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+input {
+  font: inherit;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.55rem 0.7rem;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+input[readonly] {
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border-radius: 999px;
+  padding: 0.55rem 0.9rem;
+  border: none;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.primary {
+  flex: 1;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--accent-deep);
+}
+
+.secondary {
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.status {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.status.ok {
+  color: var(--accent-deep);
+}
+
+.status.err {
+  color: #b42318;
+}
