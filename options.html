@@ -10,7 +10,7 @@
     <main class="page">
       <header>
         <h1>武哥新标签页</h1>
-        <p class="lead">导入 / 导出卡片，方便在其他电脑迁移</p>
+        <p class="lead">用分享链接在电脑之间迁移卡片</p>
       </header>
 
       <section class="panel">
@@ -21,13 +21,25 @@
 
       <section class="panel">
         <h2>导出</h2>
-        <p class="desc">下载 JSON 文件，拷到另一台电脑后导入即可。</p>
-        <button type="button" class="primary" id="export-btn">导出卡片</button>
+        <p class="desc">
+          生成可复制链接。链接以
+          <a href="https://github.com/wugeyun/chrome-tab" target="_blank" rel="noreferrer"
+            >仓库主页</a
+          >
+          为前缀，卡片数据写在地址栏 hash 里。在新电脑打开该链接即可导入（需已安装本扩展）。
+        </p>
+        <button type="button" class="primary" id="export-btn">生成分享链接</button>
+        <div class="share-box" id="share-box" hidden>
+          <textarea id="share-url" rows="4" readonly spellcheck="false"></textarea>
+          <div class="row">
+            <button type="button" class="primary" id="copy-btn">复制链接</button>
+          </div>
+        </div>
       </section>
 
       <section class="panel">
         <h2>导入</h2>
-        <p class="desc">选择之前导出的 JSON 文件。</p>
+        <p class="desc">粘贴导出得到的分享链接，或在新电脑直接打开该链接。</p>
         <div class="import-modes">
           <label class="radio">
             <input type="radio" name="mode" value="merge" checked />
@@ -35,12 +47,17 @@
           </label>
           <label class="radio">
             <input type="radio" name="mode" value="replace" />
-            替换（清空现有，以文件为准）
+            替换（清空现有，以链接为准）
           </label>
         </div>
+        <textarea
+          id="import-url"
+          rows="3"
+          spellcheck="false"
+          placeholder="粘贴 https://github.com/wugeyun/chrome-tab#wuge=... 链接"
+        ></textarea>
         <div class="row">
-          <input type="file" id="import-file" accept="application/json,.json" hidden />
-          <button type="button" class="primary" id="import-btn">选择文件并导入</button>
+          <button type="button" class="primary" id="import-btn">从链接导入</button>
         </div>
       </section>
 

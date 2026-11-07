@@ -1,16 +1,21 @@
 import {
-  buildExportPayload,
+  SHARE_BASE_URL,
+  buildShareUrl,
+  extractShareToken,
   getCards,
   hostnameOf,
   importCards,
-  parseImportPayload,
+  parseShareUrl,
 } from "./shared.js";
 
 const countEl = document.getElementById("count");
 const previewEl = document.getElementById("preview");
 const exportBtn = document.getElementById("export-btn");
+const shareBox = document.getElementById("share-box");
+const shareUrlEl = document.getElementById("share-url");
+const copyBtn = document.getElementById("copy-btn");
 const importBtn = document.getElementById("import-btn");
-const importFile = document.getElementById("import-file");
+const importUrlEl = document.getElementById("import-url");
 const statusEl = document.getElementById("status");
 
 function setStatus(message, type) {
@@ -25,13 +30,10 @@ function setStatus(message, type) {
   statusEl.className = `status ${type}`;
 }
 
-function pad(n) {
-  return String(n).padStart(2, "0");
-}
-
-function stamp() {
-  const d = new Date();
-  return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
+function selectedMode() {
+  return document.querySelector('input[name="mode"]:checked')?.value === "replace"
+    ? "replace"
+    : "merge";
 }
 
 async function refreshPreview() {
@@ -61,60 +63,78 @@ async function refreshPreview() {
   );
 }
 
+async function runImport(raw, { prompted = false } = {}) {
+  const incoming = await parseShareUrl(raw);
+  const mode = selectedMode();
+
+  if (mode === "replace") {
+    const ok = confirm(
+      prompted
+        ? `检测到分享链接，含 ${incoming.length} 张卡片。替换模式会清空当前全部卡片，确定导入？`
+        : "替换模式会清空当前全部卡片，确定继续？"
+    );
+    if (!ok) return false;
+  } else if (prompted) {
+    const ok = confirm(
+      `检测到分享链接，含 ${incoming.length} 张卡片。以合并方式导入？`
+    );
+    if (!ok) return false;
+  }
+
+  const result = await importCards(incoming, mode);
+  await refreshPreview();
+  if (mode === "replace") {
+    setStatus(`已替换为 ${result.total} 张卡片。`, "ok");
+  } else {
+    setStatus(
+      `导入完成：新增 ${result.added} 张，跳过重复 ${result.skipped} 张，当前共 ${result.total} 张。`,
+      "ok"
+    );
+  }
+  return true;
+}
+
+function clearShareHash() {
+  if (extractShareToken(location.hash)) {
+    history.replaceState(null, "", location.pathname + location.search);
+  }
+}
+
 exportBtn.addEventListener("click", async () => {
   try {
     const cards = await getCards();
-    if (!cards.length) {
-      setStatus("当前没有可导出的卡片。", "err");
-      return;
-    }
-    const payload = buildExportPayload(cards);
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `wuge-newtab-cards-${stamp()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    setStatus(`已导出 ${cards.length} 张卡片。`, "ok");
+    const url = await buildShareUrl(cards);
+    shareUrlEl.value = url;
+    shareBox.hidden = false;
+    shareUrlEl.focus();
+    shareUrlEl.select();
+    setStatus(`已生成 ${cards.length} 张卡片的分享链接，可复制到其他电脑打开。`, "ok");
   } catch (err) {
     setStatus(err?.message || "导出失败", "err");
   }
 });
 
-importBtn.addEventListener("click", () => importFile.click());
-
-importFile.addEventListener("change", async () => {
-  const file = importFile.files?.[0];
-  importFile.value = "";
-  if (!file) return;
-
-  const mode =
-    document.querySelector('input[name="mode"]:checked')?.value === "replace"
-      ? "replace"
-      : "merge";
-
-  if (mode === "replace") {
-    const ok = confirm("替换模式会清空当前全部卡片，确定继续？");
-    if (!ok) return;
-  }
-
+copyBtn.addEventListener("click", async () => {
+  const text = shareUrlEl.value.trim();
+  if (!text) return;
   try {
-    const text = await file.text();
-    const raw = JSON.parse(text);
-    const incoming = parseImportPayload(raw);
-    const result = await importCards(incoming, mode);
-    await refreshPreview();
-    if (mode === "replace") {
-      setStatus(`已替换为 ${result.total} 张卡片。`, "ok");
-    } else {
-      setStatus(
-        `导入完成：新增 ${result.added} 张，跳过重复 ${result.skipped} 张，当前共 ${result.total} 张。`,
-        "ok"
-      );
-    }
+    await navigator.clipboard.writeText(text);
+    setStatus("链接已复制到剪贴板。", "ok");
+  } catch {
+    shareUrlEl.focus();
+    shareUrlEl.select();
+    setStatus("自动复制失败，请手动全选复制。", "err");
+  }
+});
+
+importBtn.addEventListener("click", async () => {
+  const raw = importUrlEl.value.trim();
+  if (!raw) {
+    setStatus("请先粘贴分享链接。", "err");
+    return;
+  }
+  try {
+    await runImport(raw);
   } catch (err) {
     setStatus(err?.message || "导入失败", "err");
   }
@@ -124,4 +144,18 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "local" && changes.cards) refreshPreview();
 });
 
+async function bootFromHash() {
+  if (!extractShareToken(location.hash)) return;
+  importUrlEl.value = location.hash.startsWith("#wuge=")
+    ? `${SHARE_BASE_URL}${location.hash}`
+    : `${location.origin}${location.pathname}${location.hash}`;
+  try {
+    const imported = await runImport(location.hash, { prompted: true });
+    if (imported) clearShareHash();
+  } catch (err) {
+    setStatus(err?.message || "自动导入失败", "err");
+  }
+}
+
 refreshPreview();
+bootFromHash();

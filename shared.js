@@ -139,6 +139,10 @@ export function isRestrictedUrl(url) {
   );
 }
 
+/** Share links are hosted on the public repo page + hash payload. */
+export const SHARE_BASE_URL = "https://github.com/wugeyun/chrome-tab";
+const SHARE_HASH_PREFIX = "wuge=";
+
 /** @param {Card[]} cards */
 export function buildExportPayload(cards) {
   return {
@@ -164,21 +168,34 @@ export function parseImportPayload(raw) {
     ? raw
     : Array.isArray(raw?.cards)
       ? raw.cards
-      : null;
-  if (!list) throw new Error("文件格式无效：需要包含 cards 数组");
+      : Array.isArray(raw?.c)
+        ? raw.c
+        : null;
+  if (!list) throw new Error("链接格式无效：需要包含卡片数据");
 
   /** @type {Card[]} */
   const cards = [];
   for (const item of list) {
+    if (Array.isArray(item)) {
+      const url = normalizeUrl(String(item[1] || ""));
+      if (!url) continue;
+      cards.push({
+        id: crypto.randomUUID(),
+        title: String(item[0] || hostnameOf(url)).trim() || "未命名",
+        url,
+        createdAt: Date.now(),
+      });
+      continue;
+    }
     if (!item || typeof item !== "object") continue;
-    const url = normalizeUrl(String(item.url || ""));
+    const url = normalizeUrl(String(item.url || item.u || ""));
     if (!url) continue;
     cards.push({
       id:
         typeof item.id === "string" && item.id
           ? item.id
           : crypto.randomUUID(),
-      title: String(item.title || hostnameOf(url)).trim() || "未命名",
+      title: String(item.title || item.t || hostnameOf(url)).trim() || "未命名",
       url,
       createdAt:
         typeof item.createdAt === "number" && Number.isFinite(item.createdAt)
@@ -186,8 +203,119 @@ export function parseImportPayload(raw) {
           : Date.now(),
     });
   }
-  if (!cards.length) throw new Error("文件中没有有效卡片");
+  if (!cards.length) throw new Error("链接中没有有效卡片");
   return cards;
+}
+
+/** @param {Uint8Array} bytes */
+function bytesToBase64Url(bytes) {
+  const chunk = 0x8000;
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+/** @param {string} text */
+function base64UrlToBytes(text) {
+  const padded = text.replace(/-/g, "+").replace(/_/g, "/");
+  const pad = padded.length % 4 === 0 ? "" : "=".repeat(4 - (padded.length % 4));
+  const binary = atob(padded + pad);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+/** @param {Uint8Array} bytes */
+async function deflate(bytes) {
+  const stream = new Blob([bytes])
+    .stream()
+    .pipeThrough(new CompressionStream("deflate-raw"));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+/** @param {Uint8Array} bytes */
+async function inflate(bytes) {
+  const stream = new Blob([bytes])
+    .stream()
+    .pipeThrough(new DecompressionStream("deflate-raw"));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+/**
+ * Build a shareable GitHub URL that embeds card data in the hash.
+ * @param {Card[]} cards
+ */
+export async function buildShareUrl(cards) {
+  if (!cards.length) throw new Error("当前没有可导出的卡片");
+  const compact = {
+    a: "wuge-newtab",
+    v: 1,
+    c: cards.map((card) => [card.title, card.url]),
+  };
+  const jsonBytes = new TextEncoder().encode(JSON.stringify(compact));
+  const compressed = await deflate(jsonBytes);
+  const payload = `1.${bytesToBase64Url(compressed)}`;
+  return `${SHARE_BASE_URL}#${SHARE_HASH_PREFIX}${payload}`;
+}
+
+/**
+ * Extract share payload token from a full URL, hash, or raw token.
+ * @param {string} raw
+ * @returns {string | null}
+ */
+export function extractShareToken(raw) {
+  const text = (raw || "").trim();
+  if (!text) return null;
+
+  try {
+    if (/^https?:\/\//i.test(text)) {
+      const url = new URL(text);
+      const fromHash = url.hash.replace(/^#/, "");
+      if (fromHash.startsWith(SHARE_HASH_PREFIX)) {
+        return fromHash.slice(SHARE_HASH_PREFIX.length);
+      }
+      const fromQuery = url.searchParams.get("wuge");
+      if (fromQuery) return fromQuery;
+    }
+  } catch {
+    /* fall through */
+  }
+
+  const hash = text.startsWith("#") ? text.slice(1) : text;
+  if (hash.startsWith(SHARE_HASH_PREFIX)) {
+    return hash.slice(SHARE_HASH_PREFIX.length);
+  }
+  if (/^\d+\./.test(hash)) return hash;
+  return null;
+}
+
+/**
+ * Decode cards from a share URL / hash / token.
+ * @param {string} raw
+ * @returns {Promise<Card[]>}
+ */
+export async function parseShareUrl(raw) {
+  const token = extractShareToken(raw);
+  if (!token) throw new Error("未识别到有效的分享链接");
+
+  const dot = token.indexOf(".");
+  if (dot < 0) throw new Error("分享链接格式无效");
+  const version = token.slice(0, dot);
+  const body = token.slice(dot + 1);
+  if (version !== "1" || !body) throw new Error("不支持的分享链接版本");
+
+  try {
+    const inflated = await inflate(base64UrlToBytes(body));
+    const json = new TextDecoder().decode(inflated);
+    return parseImportPayload(JSON.parse(json));
+  } catch (err) {
+    if (err instanceof Error && /有效卡片|格式无效|链接/.test(err.message)) {
+      throw err;
+    }
+    throw new Error("分享链接已损坏或无法解析");
+  }
 }
 
 /**
